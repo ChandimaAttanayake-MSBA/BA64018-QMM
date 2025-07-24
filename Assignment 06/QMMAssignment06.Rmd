@@ -1,0 +1,151 @@
+---
+title: "QMM-Assignment 06"
+author: "Chandima Attanayake"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+```
+
+# Assignment Instructions: Module 11 – Integer Programming
+
+***Directions***
+
+AP is a shipping service that guarantees overnight delivery of packages in the continental US.The company has various hubs at major cities and airports across the country. Packages are received at hubs, and then shipped to intermediate hubs or to their destination. The manager of the AP hub in Cleveland is concerned about labor costs and is interested in determining the most effective way to schedule workers. The hub operates seven days a week, and the number of packages it handles varies from one day to another. The table below provides an estimate of the number of workers needed each day of the week.
+
+```{r}
+days1 <- c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+Wokers_required1 <- c(20, 25, 22, 28, 25, 22, 20)
+
+# Create a data frame
+data1 <- data.frame(Day = days1, workers_required = Wokers_required1)
+
+# Display the table with column and row lines
+data1 %>%
+  kable() %>%
+  kable_classic() %>%
+  column_spec(2,border_left = TRUE) %>%
+  column_spec(1,border_left = TRUE) %>%
+  column_spec(2,border_right = TRUE)
+```
+
+Package handlers at AP are guaranteed a five-day work week with two consecutive days off. The base wage for the handlers is $750 per week. Workers working on Saturday or Sunday receive an
+additional $20 per day. The possible shifts and salaries for package handlers are:
+
+```{r}
+
+# Required data
+Shift <- c(1,2,3,4,5,6,7)
+Days_off <- c("Sunday and Monday", "Monday and Tuesday", "Tuesday and Wednessday", "Wednesday and Thursday", "Thursday and Friday", "Friday and Saturday", "Saturday and Sunday")
+values <- c(770, 790, 790, 790, 790, 770, 750)
+
+# Create a data frame
+data <- data.frame(Shift = Shift, Days_off = Days_off, Values = values)
+
+# Display the table with column and row lines
+data %>%
+  kable() %>%
+  kable_classic() %>%
+  column_spec(2,border_left = TRUE) %>%
+  column_spec(1,border_left = TRUE) %>%
+  column_spec(2,border_right = TRUE)%>%
+  column_spec(3,border_right = TRUE)
+
+```
+
+# 1. Formulate the problem.
+
+**Objective**
+
+Minimize Z = 770x1+790x2+790x3+790x4+790x5+770x6+750x7
+
+**Constraints**
+
+Sunday    -   x2+x3+x4+x5+x6 >= 20
+Monday    -   x3+x4+x5+x6+x7 >= 25
+Tuesday   -   x1+x4+x5+x6+x7 >= 22
+Wednesday -   x1+x2+x5+x6+x7 >= 28
+Thursday  -   x1+x2+x3+x6+x7 >= 25
+Friday    -   x1+x2+x3+x4+x7 >= 22
+Saturday  -   x1+x2+x3+x4+x5 >= 20
+
+**Non-negativity and Integer Constraint**
+
+xi >= 0 and  
+
+i=1,2,3,4,5,6,7.
+
+
+# 2. Solve the problem in R markdown.
+
+```{r}
+
+library(lpSolveAPI)
+
+# Initialize model with 7 decision variables
+AP2 <- make.lp(0, 7)
+
+# Set objective function coefficients (wages per shift)
+set.objfn(AP2, c(770, 790, 790, 790, 790, 770, 750))
+
+# Add constraints for each day
+add.constraint(AP2, c(0, 1, 1, 1, 1, 1, 0), ">=", 20) # Sunday
+add.constraint(AP2, c(0, 0, 1, 1, 1, 1, 1), ">=", 25) # Monday
+add.constraint(AP2, c(1, 0, 0, 1, 1, 1, 1), ">=", 22) # Tuesday
+add.constraint(AP2, c(1, 1, 0, 0, 1, 1, 1), ">=", 28) # Wednesday
+add.constraint(AP2, c(1, 1, 1, 0, 0, 1, 1), ">=", 25) # Thursday
+add.constraint(AP2, c(1, 1, 1, 1, 0, 0, 1), ">=", 22) # Friday
+add.constraint(AP2, c(1, 1, 1, 1, 1, 0, 0), ">=", 20) # Saturday
+
+# Set variables as integers
+set.type(AP2, 1:7, "integer")
+
+# Solve the problem
+solve(AP2)
+
+# Display the minimum cost
+total_cost <- get.objective(AP2)
+total_cost
+
+# Get the optimal number of workers assigned to each shift
+optimal_workers <- get.variables(AP2)
+optimal_workers
+
+# Calculate the number of workers available each day
+daily_workers <- get.constraints(AP2)
+daily_workers
+
+
+```
+
+# 3. Total cost and the number of workers available each day.
+
+**The total cost**
+
+According to the above answer, the total cost of the salaries per week which is minimize the wage cost is $25,550.The cost of $ 25,550 is further explained as below accordong to the above answer.
+
+
+shift 1 - there are 2 employees, paid $770 each (Total:770*2= $1,540)
+shift 2 - there are 6 employees, paid $790 each (Total:790*6= $4,740)
+Shift 3 - there are 4 employees, paid $790 each (Total:790*4= $1,540)
+shift 4 - there are 0 employees, paid $790 each (Total:790*0= $0)
+shift 5 - there are 8 employees, paid $790 each (Total:790*8= $6,320)
+shift 6 - there are 2 employees, paid $770 each (Total:770*2= $1,540)
+shift 7 - there are 11 employees, paid $750 each (Total:750*11= $8,250)
+
+Accordingly, the total cost is (1540+4740+1540+6320+1540+8250=$25,550) $ 25,550.
+
+**The Number of workers availble on each day**
+
+According to the above calulcation, employees are availble on each day as below. Also, when it comapred with the minimum number of required employees, it is satisfied the requirement. 
+Sunday    - Required 20 and 20 available
+Monday    - Required 25 and 25 available 
+Tuesday   - Required 22 and 23 available 
+Wednesday - Required 28 and 29 available 
+Thursday  - Required 25 and 25 available 
+Friday    - Required 22 and 23 available
+Sunday    - Required 20 and 20 available 
+
