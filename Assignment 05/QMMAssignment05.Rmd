@@ -1,0 +1,125 @@
+---
+title: "QMM-Assignment 05"
+author: "Chandima Attanayake"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Quetion DATA
+
+***The Research and Development Division of the Emax Corporation has developed three new products. A decision now needs to be made on which mix of these products should be produced.Management wants primary consideration given to three factors: total profit, stability in the workforce, and achieving an increase in the company’s earnings next year from the $60 million achieved this year. In particular, using the units given in the following table, they want to Maximize Z = P - 5C - 2D, where***
+***P = total (discounted) profit over the life of the new products,***
+***C = change (in either direction) in the current level of employment,***
+***D = decrease (if any) in next year’s earnings from the current year’s level.***
+***The amount of any increase in earnings does not enter into Z, because management is concerned primarily with just achieving some increase to keep the stockholders happy. (It has mixed feelings about a large increase that then would be difficult to surpass in subsequent years.)The impact of each of the new products (per unit rate of production) on each of these factors is shown in the following table:***
+
+
+```{r}
+
+library(kableExtra)
+data <- data.frame(
+  Factor = c("Total Profit", "Employment Level", "Earnings Next Year"),
+  X1 = c(15, 8, 6),
+  X2 = c(12, 6, 5),
+  X3 = c(20, 5, 4),
+  Goal = c("Maximize", "= 70", ">= 60"),
+  Units = c("Millions of Dollars", "Hundreds of Workers", "Millions of Dollars")
+)
+
+data %>%
+  kable() %>%
+  kable_styling(full_width = FALSE) %>%
+  add_header_above(c(" " = 1, "Product Contributions" = 3, " " = 2))
+
+
+```
+
+# 01. Define Variables#
+
+Define x1, x2, x3x_1, x_2, x_3x1,x2,x3 as the production rates for Products 1, 2, and 3, respectively, and set.
+
+•	y1 - Over and under deviations for employment level.
+•	y2 - Over and under deviations for next year's earnings.
+
+The goal programming constraints are
+
+y1+-y1- = 8x1+ 6x2 + 5x3 -70 
+y2+-y2- = 6x1+ 5x2 + 4x3 -60
+
+
+# 02. Objective funtion#
+
+Z = 15x1 + 12x2 + 20x3 - 5(y1++y1-) -2y2-
+
+
+# 03. Formulate and Solve LP Model#
+
+```{r}
+
+# Load the library
+library(lpSolveAPI)
+
+# Initialize LP model with 2 constraints and 7 decision variables
+lp_model <- make.lp(2, 7)
+
+# Set objective function coefficients
+set.objfn(lp_model, c(15, 12, 20, -5, -5, 0, -2))
+
+# Define objective direction to maximize
+lp.control(lp_model, sense = "max")
+
+# Set up the constraints
+# Employment constraint: 8*x1 + 6*x2 + 5*x3 - y1+ + y1- = 70
+set.row(lp_model, 1, c(8, 6, 5, -1, 1, 0, 0), indices = c(1, 2, 3, 4, 5, 6, 7))
+
+# Earnings constraint: 6*x1 + 5*x2 + 4*x3 - y2+ + y2- = 60
+set.row(lp_model, 2, c(6, 5, 4, 0, 0, -1, 1), indices = c(1, 2, 3, 4, 5, 6, 7))
+
+# Set right-hand side values
+set.rhs(lp_model, c(70, 60))
+
+# Set constraints type to equality
+set.constr.type(lp_model, c("=", "="))
+
+# Set non-negativity for decision variables
+set.bounds(lp_model, lower = rep(0, 7))
+
+# Set names for decision variables
+colnames(lp_model) <- c("x1", "x2", "x3", "y1+", "y1-", "y2+", "y2-")
+
+# Solve LP model
+solve(lp_model)
+
+# Retrieve and display results
+opt_value <- get.objective(lp_model)
+opt_variables <- get.variables(lp_model)
+list(Objective = opt_value, Variables = opt_variables)
+
+
+```
+
+# 04. Findings
+
+x1 = 0
+x2 = 0
+x3 = 15
+y1p = 5
+y1m = 0
+y2p = 0
+y2m = 0
+
+The optimal production rates for Products x1, x2, and x3 are 0, 0, and 15 units, respectively. This solution suggests that no units of Products x1 and x2 should be produced as both are 0. However, all production resources should be directed toward Product 3 (x3 = 15) 
+
+For the positive and negative deviations in employment and earnings, the optimal values are 5 and 0, respectively. This outcome shows that the company will precisely meet its employment and earnings targets without any shortfall or surplus.
+
+
+With these production levels and deviation values, the objective function Z reaches its maximum value of 275, which represents the optimal solution. Thus, the company can achieve a total profit of 275 million dollars while satisfying both its employment and earnings objectives.
+
+
+
